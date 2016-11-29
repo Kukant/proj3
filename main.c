@@ -6,6 +6,7 @@
  * http://is.muni.cz/th/172767/fi_b/5739129/web/web/clsrov.html
  */
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h> // sqrtf
@@ -82,8 +83,8 @@ void init_cluster(struct cluster_t *c, int cap)
 {
     assert(c != NULL);
     assert(cap >= 0);
-
-    // TODO
+    c = malloc(sizeof(struct obj_t));
+    c -> obj = malloc(cap * sizeof(struct obj_t));
 
 }
 
@@ -92,7 +93,10 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-    // TODO
+   // for(int i = 1;c->capacity <= i; i++)
+    //{
+        free(c->obj);
+   // }
 }
 
 /// Chunk of cluster objects. Value recommended for reallocation.
@@ -248,6 +252,14 @@ int load_clusters(char *filename, struct cluster_t **arr)
     assert(arr != NULL);
 
     // TODO
+
+    FILE *fr;
+
+    if ((fr = fopen(filename, "r")) == NULL)
+        fprintf(stderr,"Soubor %s se nepodarilo otevrit.\n", filename);
+
+    fscanf(fr, "[]"
+
 }
 
 /*
