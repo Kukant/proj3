@@ -41,6 +41,11 @@
 
 #endif
 
+#define WRONG_ARGS 1
+#define TOO_LONG_NAME 2
+#define NOT_NUM 3
+#define FILE_ERR 4
+
 /*****************************************************************
  * Deklarace potrebnych datovych typu:
  *
@@ -75,6 +80,13 @@ struct cluster_t {
  *
  */
 
+/**
+*   Funkci prototypy nekterych dalsich, vlastnich funkci.
+*/
+
+void error(int err_num);
+int is_number(char* s);
+
 /*
  Inicializace shluku 'c'. Alokuje pamet pro cap objektu (kapacitu).
  Ukazatel NULL u pole objektu znamena kapacitu 0.
@@ -83,9 +95,8 @@ void init_cluster(struct cluster_t *c, int cap)
 {
     assert(c != NULL);
     assert(cap >= 0);
-    c = malloc(sizeof(struct obj_t));
+    c = malloc(sizeof(struct cluster_t));
     c -> obj = malloc(cap * sizeof(struct obj_t));
-
 }
 
 /*
@@ -93,10 +104,8 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-   // for(int i = 1;c->capacity <= i; i++)
-    //{
         free(c->obj);
-   // }
+        c->capacity = 0;
 }
 
 /// Chunk of cluster objects. Value recommended for reallocation.
@@ -254,12 +263,48 @@ int load_clusters(char *filename, struct cluster_t **arr)
     // TODO
 
     FILE *fr;
+    int count;
 
     if ((fr = fopen(filename, "r")) == NULL)
+    {
         fprintf(stderr,"Soubor %s se nepodarilo otevrit.\n", filename);
+        return -1;
+    }
 
-    fscanf(fr, "[]"
+    if (fscanf(fr, "count=%d", &count) == 0)
+    {
+        error(FILE_ERR);
+        *arr = NULL;
+        return 0;
+    }
 
+    float x,y;
+    int id;
+
+    int loaded = 0;
+
+    (*arr) = malloc(count * sizeof(struct cluster_t));
+
+    struct cluster_t *ptr;
+    for(int i = 0; i < count; i++)
+    {
+        (*arr)[i].obj = malloc(sizeof(struct obj_t));
+        (*arr)[i].capacity = 1;
+        (*arr)[i].size = 1;
+
+        if (fscanf(fr, "\n%d %f %f", &id, &x, &y) == 3)
+        {
+            loaded++;
+
+            (*arr)[i].obj->id = id;
+            (*arr)[i].obj->x = x;
+            (*arr)[i].obj->y = y;
+        }
+    }
+
+    fclose(fr);
+
+    return loaded;
 }
 
 /*
@@ -273,12 +318,105 @@ void print_clusters(struct cluster_t *carr, int narr)
     {
         printf("cluster %d: ", i);
         print_cluster(&carr[i]);
+
     }
 }
+
+/****************************** MAIN ********************************************/
 
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
 
     // TODO
+
+    if(argc != 2 && argc != 3)
+    {
+        error(WRONG_ARGS);
+        return 1;
+    }
+
+    double cluster_num; /* Deklarovani promennych.*/
+    char file_name[100];
+
+    if(strlen(argv[1]) + 1 > 100) /* Nasleduje testovani a definice argumentu. */
+    {
+        error(TOO_LONG_NAME);
+        return 1;
+    }
+
+    strcpy(file_name, argv[1]);
+
+    if (argc == 1)
+    {
+        cluster_num = 1;
+    }
+
+
+    else if (!is_number(argv[2]))
+    {
+        error(NOT_NUM);
+        return 1;
+    }
+
+    else
+        cluster_num = atof(argv[2]); /*Konec inicializace promennych z argumentu.*/
+
+    int loaded = load_clusters(file_name, &clusters);
+    print_clusters(clusters, loaded);
+
+    return 0;
 }
+
+/********************** DEFINICE DALSICH FUNKCI ************************************/
+
+/*
+*   Funkce vypise chybovou hlasku na stderr.
+*   err_num je cislo chyby
+*/
+void error(int err_num)
+{
+    switch(err_num)
+    {
+        case WRONG_ARGS :
+            fprintf(stderr, "Chybne zadani argumentu.\n");
+            break;
+
+        case TOO_LONG_NAME :
+            fprintf(stderr, "Prilis dlouhy nazev dokumentu.\n");
+            break;
+
+        case NOT_NUM :
+            fprintf(stderr, "Druhy argument funkce neni kladne cislo.\n");
+            break;
+
+        case FILE_ERR :
+            fprintf(stderr, "Chyba v souboru.\n");
+            break;
+    }
+}
+
+/*
+*   Otestuje retezec zdali je kladne cislo. Vrati 1 pokud ano, 0 pokud ne.
+*/
+int is_number(char *s)
+{
+    char *endptr;
+    strtod(s, &endptr);
+
+    if(*endptr != '\0')
+        return 0;
+
+    double x = atof(s);
+
+    return x < 1 ? 0 : 1;
+}
+
+
+
+
+
+
+
+
+

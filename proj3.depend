@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1480544852 source:/home/zeusko/Plocha/c/proj3/main.c
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<assert.h>
+	<math.h>
+	<limits.h>
+
