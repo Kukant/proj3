@@ -186,7 +186,12 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     assert(o1 != NULL);
     assert(o2 != NULL);
 
-    // TODO
+    float a1 = o1->x;
+    float a2 = o1->y;
+    float b1 = o2->x;
+    float b2 = o2->y;
+
+    return sqrt( (a1-b1)*(a1-b1) + (a2-b2)*(a2-b2) );
 }
 
 /*
@@ -200,6 +205,21 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
     assert(c2->size > 0);
 
     // TODO
+
+    float max = 0;
+    float distance = 0;
+
+    for (int i = 0; i < c1->size; i++)
+    {
+        for(int j = 0; j < c2->size; j++)
+        {
+            distance = obj_distance( &c1->obj[i], &c2->obj[j] );
+            if ( distance > max)
+                max = distance;
+        }
+    }
+
+    return distance;
 }
 
 /*
@@ -274,7 +294,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
     if (fscanf(fr, "count=%d", &count) == 0)
     {
         error(FILE_ERR);
-        *arr = NULL;
+        (*arr) = NULL;
         return 0;
     }
 
@@ -283,16 +303,16 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     int loaded = 0;
 
-    (*arr) = malloc(count * sizeof(struct cluster_t));
+    *arr = malloc(count * sizeof(struct cluster_t));
 
-    struct cluster_t *ptr;
     for(int i = 0; i < count; i++)
     {
+
         (*arr)[i].obj = malloc(sizeof(struct obj_t));
         (*arr)[i].capacity = 1;
         (*arr)[i].size = 1;
 
-        if (fscanf(fr, "\n%d %f %f", &id, &x, &y) == 3)
+        if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
         {
             loaded++;
 
@@ -336,7 +356,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    double cluster_num; /* Deklarovani promennych.*/
+    int cluster_num; /* Deklarovani promennych.*/
     char file_name[100];
 
     if(strlen(argv[1]) + 1 > 100) /* Nasleduje testovani a definice argumentu. */
@@ -348,10 +368,7 @@ int main(int argc, char *argv[])
     strcpy(file_name, argv[1]);
 
     if (argc == 1)
-    {
         cluster_num = 1;
-    }
-
 
     else if (!is_number(argv[2]))
     {
@@ -360,10 +377,12 @@ int main(int argc, char *argv[])
     }
 
     else
-        cluster_num = atof(argv[2]); /*Konec inicializace promennych z argumentu.*/
+        cluster_num = atoi(argv[2]); /*Konec inicializace promennych z argumentu.*/
 
     int loaded = load_clusters(file_name, &clusters);
     print_clusters(clusters, loaded);
+
+    printf(" \n vzdalenost prvniho a druheho clusteru resp. objektu: %f\n", cluster_distance(&clusters[0], &clusters[1]));
 
     return 0;
 }
