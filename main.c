@@ -104,8 +104,8 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-        free(c->obj);
-        c->capacity = 0;
+        //free(c->obj);
+        c->size = 0;
 }
 
 /// Chunk of cluster objects. Value recommended for reallocation.
@@ -233,6 +233,17 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
     assert(narr > 0);
 
     // TODO
+
+    float min = 1415; // protoze nejvzdalenejsi body v poli 1000x1000 jsou 1415
+    float
+
+    for(int i = 0; i < narr; i++)
+    {
+        for(int j = 1;j < narr - 1; j++) // -1 protoze netestuji sam se sebou
+        {
+            if(cluster_distance(carrr[i], carr[j]);
+        }
+    }
 }
 
 // pomocna funkce pro razeni shluku
@@ -303,7 +314,10 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     int loaded = 0;
 
-    *arr = malloc(count * sizeof(struct cluster_t));
+    *arr = (struct cluster_t *) malloc(count * sizeof(struct cluster_t));
+
+    if(*arr == NULL)
+        return -1;
 
     for(int i = 0; i < count; i++)
     {
@@ -314,12 +328,16 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
         {
+
             loaded++;
 
             (*arr)[i].obj->id = id;
             (*arr)[i].obj->x = x;
             (*arr)[i].obj->y = y;
         }
+
+        else
+            error(FILE_ERR);
     }
 
     fclose(fr);
