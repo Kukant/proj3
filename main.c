@@ -176,6 +176,12 @@ int remove_cluster(struct cluster_t *carr, int narr, int idx)
     assert(narr > 0);
 
     // TODO
+
+    carr[idx] = carr[narr - 1]; /*posledni cluster si prekopiruji do clusteru s indexem idx a posledni uvolnim */
+    //free(carr[narr-1].obj[0]);
+    //free(&carr[narr-1]);
+
+    return narr - 1;
 }
 
 /*
@@ -192,6 +198,8 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     float b2 = o2->y;
 
     return sqrt( (a1-b1)*(a1-b1) + (a2-b2)*(a2-b2) );
+
+    return ;
 }
 
 /*
@@ -214,7 +222,7 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
         for(int j = 0; j < c2->size; j++)
         {
             distance = obj_distance( &c1->obj[i], &c2->obj[j] );
-            if ( distance > max)
+            if (distance > max)
                 max = distance;
         }
     }
@@ -235,15 +243,21 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
     // TODO
 
     float min = 1415; // protoze nejvzdalenejsi body v poli 1000x1000 jsou 1415
-    float
+    float prom = 0;
 
-    for(int i = 0; i < narr; i++)
-    {
-        for(int j = 1;j < narr - 1; j++) // -1 protoze netestuji sam se sebou
-        {
-            if(cluster_distance(carrr[i], carr[j]);
-        }
-    }
+    for(int i = 0; i < narr/2; i++) // /2 protoze nechci testovat 2 stejne znovu
+        for(int j = 0;j < narr; j++)
+            if(i != j) // nebude testovat 2 stejne clustery
+            {
+                prom = cluster_distance(&carr[i], &carr[j]);
+                if (prom < min)
+                {
+                    min = prom;
+                    *c1 = i;
+                    *c2 = j;
+                }
+            }
+    return ;
 }
 
 // pomocna funkce pro razeni shluku
@@ -272,6 +286,8 @@ void sort_cluster(struct cluster_t *c)
 void print_cluster(struct cluster_t *c)
 {
     // TUTO FUNKCI NEMENTE
+
+   // printf("ahoj z printu. %d", c->size);
     for (int i = 0; i < c->size; i++)
     {
         if (i) putchar(' ');
@@ -331,6 +347,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
             loaded++;
 
+
             (*arr)[i].obj->id = id;
             (*arr)[i].obj->x = x;
             (*arr)[i].obj->y = y;
@@ -365,6 +382,7 @@ void print_clusters(struct cluster_t *carr, int narr)
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
+    int n_clusters = 0;
 
     // TODO
 
@@ -397,10 +415,24 @@ int main(int argc, char *argv[])
     else
         cluster_num = atoi(argv[2]); /*Konec inicializace promennych z argumentu.*/
 
-    int loaded = load_clusters(file_name, &clusters);
-    print_clusters(clusters, loaded);
+    n_clusters = load_clusters(file_name, &clusters);
 
-    printf(" \n vzdalenost prvniho a druheho clusteru resp. objektu: %f\n", cluster_distance(&clusters[0], &clusters[1]));
+    int i, j;
+
+    //find_neighbours(clusters,n_clusters, &i, &j);
+
+    n_clusters = remove_cluster(clusters, n_clusters, 5);
+
+    print_clusters(clusters, n_clusters);
+
+
+
+    for(int i = 0; i < n_clusters; i++)
+        free(&clusters[i].obj[0]);
+
+    free(clusters);
+
+
 
     return 0;
 }
