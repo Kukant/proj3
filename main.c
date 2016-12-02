@@ -86,7 +86,7 @@ struct cluster_t {
 
 void error(int err_num);
 int is_number(char* s);
-
+void free_all(struct cluster_t *clusters, int n_clusters);
 /*
  Inicializace shluku 'c'. Alokuje pamet pro cap objektu (kapacitu).
  Ukazatel NULL u pole objektu znamena kapacitu 0.
@@ -141,10 +141,8 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
  */
 void append_cluster(struct cluster_t *c, struct obj_t obj)
 {
-    // TODO
-
     if (c->size + 1 > c->capacity)
-        resize_cluster(c, c->size + 1);
+        resize_cluster(c, c->size + CLUSTER_CHUNK);
 
     c->obj[c->size] = obj;
     c->size ++;
@@ -188,9 +186,8 @@ int remove_cluster(struct cluster_t *carr, int narr, int idx) /**---------------
     assert(idx < narr);
     assert(narr > 0);
 
-    // TODO
-    //free(&(carr[idx].obj[0]));
-    carr[idx] = carr[narr - 1]; /*posledni cluster si prekopiruji do clusteru s indexem idx a posledni uvolnim */
+    free(carr[idx].obj);
+    carr[idx] = carr[narr - 1]; // posledni cluster si prekopiruji do clusteru s indexem idx a posledni uvolnim
 
     return narr - 1;
 }
@@ -249,10 +246,10 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
 
     // TODO
 
-    float min = 1415; // protoze nejvzdalenejsi body v poli 1000x1000 jsou 1415
+    float min = 1420; // protoze nejvzdalenejsi body v poli 1000x1000 jsou 1415
     float prom = 0;
 
-    for(int i = 0; i < narr/2; i++) // /2 protoze nechci testovat 2 stejne znovu
+    for(int i = 0; i < narr; i++) // /2 protoze nechci testovat 2 stejne znovu
         for(int j = 0;j < narr; j++)
             if(i != j) // nebude testovat 2 stejne clustery
             {
@@ -264,7 +261,6 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
                     *c2 = j;
                 }
             }
-    return ;
 }
 
 // pomocna funkce pro razeni shluku
@@ -328,7 +324,14 @@ int load_clusters(char *filename, struct cluster_t **arr)
     {
         error(FILE_ERR);
         (*arr) = NULL;
-        return 0;
+        return -1;
+    }
+
+    if (count < 1)
+    {
+        error(FILE_ERR);
+        (*arr) = NULL;
+        return -1;
     }
 
     float x,y;
@@ -349,6 +352,23 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
         {
+            if(x < 0 || x > 1000 || y < 0 || y > 1000) // pokud bude neplatny format souradnic
+            {
+                error(FILE_ERR);
+                (*arr) = NULL;
+                return -1;
+            }
+
+            for (int j = 0; j < loaded; j++) // testuji zdali v souboru nejsou 2 objekty se stejnym id
+            {
+                if((*arr)[j].obj->id == id)
+                {
+                    error(FILE_ERR);
+                    (*arr) = NULL;
+                    return -1;
+                }
+            }
+
             loaded++;
 
             (*arr)[i].obj->id = id;
@@ -357,7 +377,11 @@ int load_clusters(char *filename, struct cluster_t **arr)
         }
 
         else
+        {
             error(FILE_ERR);
+            (*arr) = NULL;
+            return -1;
+        }
     }
     fclose(fr);
 
@@ -384,9 +408,6 @@ void print_clusters(struct cluster_t *carr, int narr)
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
-//    int n_clusters = 0;
-
-    // TODO
 
     if(argc != 2 && argc != 3)
     {
@@ -394,8 +415,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int cluster_num; /* Deklarovani promennych.*/
+    int final_cluster_num; /* Deklarovani promennych.*/
     char file_name[100];
+    int c1, c2;
 
     if(strlen(argv[1]) + 1 > 100) /* Nasleduje testovani a definice argumentu. */
     {
@@ -405,8 +427,8 @@ int main(int argc, char *argv[])
 
     strcpy(file_name, argv[1]);
 
-    if (argc == 1)
-        cluster_num = 1;
+    if (argc == 2)
+        final_cluster_num = 1;
 
     else if (!is_number(argv[2]))
     {
@@ -415,22 +437,33 @@ int main(int argc, char *argv[])
     }
 
     else
-        cluster_num = atoi(argv[2]); /*Konec inicializace promennych z argumentu.*/
+        final_cluster_num = atoi(argv[2]); /*Konec inicializace promennych z argumentu.*/
 
-    int loaded = load_clusters(file_name, &clusters);
+    int n_clusters = load_clusters(file_name, &clusters);
 
-    merge_clusters(&clusters[5], &clusters[6]);
-    merge_clusters(&clusters[2], &clusters[5]);
-    merge_clusters(&clusters[8], &clusters[2]);
-    append_cluster(&clusters[8], clusters[19].obj[0]);
-    print_clusters(clusters, loaded);
+    if (n_clusters == -1)
+    {
+        free_all(clusters, n_clusters);
+        return 1;
+    }
 
-    for(int i = 0; i < loaded; i++)
-        free(&clusters[i].obj[0]);
+    else if (n_clusters < final_cluster_num)
+    {
+        fprintf(stderr, "V souboru je pouze %d objektu, tudiz nemuzu udelat %d shluku. \n", n_clusters, final_cluster_num);
+        free_all(clusters, n_clusters);
+        return 1;
+    }
 
-    free(clusters);
 
+    while (n_clusters > final_cluster_num)
+    {
+       find_neighbours(clusters, n_clusters, &c1, &c2);
+       merge_clusters(&clusters[c1], &clusters[c2]);
+       n_clusters = remove_cluster(clusters, n_clusters, c2);
+    }
+    print_clusters(clusters, n_clusters);
 
+    free_all(clusters, n_clusters);
 
     return 0;
 }
@@ -478,3 +511,22 @@ int is_number(char *s)
 
     return x < 1 ? 0 : 1;
 }
+
+void free_all(struct cluster_t *clusters, int n_clusters)
+{
+    for(int i = 0; i < n_clusters; i++)
+        free(clusters[i].obj);
+
+    free(clusters);
+}
+
+
+
+
+
+
+
+
+
+
+
