@@ -104,7 +104,7 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-        //free(c->obj);
+        free(c->obj);
         c->size = 0;
 }
 
@@ -142,6 +142,12 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
 void append_cluster(struct cluster_t *c, struct obj_t obj)
 {
     // TODO
+
+    if (c->size + 1 > c->capacity)
+        resize_cluster(c, c->size + 1);
+
+    c->obj[c->size] = obj;
+    c->size ++;
 }
 
 /*
@@ -159,7 +165,14 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     assert(c1 != NULL);
     assert(c2 != NULL);
 
-    // TODO
+    resize_cluster(c1, c1->size + c2->size);
+
+    for(int i = c1->size; i < c1->size + c2->size; i++)
+        c1->obj[i] = c2->obj[i - c1->size];
+
+    c1->size += c2->size;
+    sort_cluster(c1);
+
 }
 
 /**********************************************************************/
@@ -170,16 +183,14 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
  (shluku). Shluk pro odstraneni se nachazi na indexu 'idx'. Funkce vraci novy
  pocet shluku v poli.
 */
-int remove_cluster(struct cluster_t *carr, int narr, int idx)
+int remove_cluster(struct cluster_t *carr, int narr, int idx) /**------------------------------------------------ TODO ----------------------------------------------------*/
 {
     assert(idx < narr);
     assert(narr > 0);
 
     // TODO
-
+    //free(&(carr[idx].obj[0]));
     carr[idx] = carr[narr - 1]; /*posledni cluster si prekopiruji do clusteru s indexem idx a posledni uvolnim */
-    //free(carr[narr-1].obj[0]);
-    //free(&carr[narr-1]);
 
     return narr - 1;
 }
@@ -198,8 +209,6 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     float b2 = o2->y;
 
     return sqrt( (a1-b1)*(a1-b1) + (a2-b2)*(a2-b2) );
-
-    return ;
 }
 
 /*
@@ -211,8 +220,6 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
     assert(c1->size > 0);
     assert(c2 != NULL);
     assert(c2->size > 0);
-
-    // TODO
 
     float max = 0;
     float distance = 0;
@@ -287,7 +294,6 @@ void print_cluster(struct cluster_t *c)
 {
     // TUTO FUNKCI NEMENTE
 
-   // printf("ahoj z printu. %d", c->size);
     for (int i = 0; i < c->size; i++)
     {
         if (i) putchar(' ');
@@ -337,16 +343,13 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     for(int i = 0; i < count; i++)
     {
-
         (*arr)[i].obj = malloc(sizeof(struct obj_t));
         (*arr)[i].capacity = 1;
         (*arr)[i].size = 1;
 
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
         {
-
             loaded++;
-
 
             (*arr)[i].obj->id = id;
             (*arr)[i].obj->x = x;
@@ -356,7 +359,6 @@ int load_clusters(char *filename, struct cluster_t **arr)
         else
             error(FILE_ERR);
     }
-
     fclose(fr);
 
     return loaded;
@@ -382,7 +384,7 @@ void print_clusters(struct cluster_t *carr, int narr)
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
-    int n_clusters = 0;
+//    int n_clusters = 0;
 
     // TODO
 
@@ -415,19 +417,15 @@ int main(int argc, char *argv[])
     else
         cluster_num = atoi(argv[2]); /*Konec inicializace promennych z argumentu.*/
 
-    n_clusters = load_clusters(file_name, &clusters);
+    int loaded = load_clusters(file_name, &clusters);
 
-    int i, j;
+    merge_clusters(&clusters[5], &clusters[6]);
+    merge_clusters(&clusters[2], &clusters[5]);
+    merge_clusters(&clusters[8], &clusters[2]);
+    append_cluster(&clusters[8], clusters[19].obj[0]);
+    print_clusters(clusters, loaded);
 
-    //find_neighbours(clusters,n_clusters, &i, &j);
-
-    n_clusters = remove_cluster(clusters, n_clusters, 5);
-
-    print_clusters(clusters, n_clusters);
-
-
-
-    for(int i = 0; i < n_clusters; i++)
+    for(int i = 0; i < loaded; i++)
         free(&clusters[i].obj[0]);
 
     free(clusters);
@@ -480,12 +478,3 @@ int is_number(char *s)
 
     return x < 1 ? 0 : 1;
 }
-
-
-
-
-
-
-
-
-
