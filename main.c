@@ -344,7 +344,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
     if(*arr == NULL)
         return -1;
 
-    for(int i = 0; i < count; i++)
+    for(int i = 0; i < count; i++) // cyklus pro nacitani objektu ze souboru a jejich prepisovani
     {
         (*arr)[i].obj = malloc(sizeof(struct obj_t));
         (*arr)[i].capacity = 1;
@@ -461,6 +461,7 @@ int main(int argc, char *argv[])
        merge_clusters(&clusters[c1], &clusters[c2]);
        n_clusters = remove_cluster(clusters, n_clusters, c2);
     }
+
     print_clusters(clusters, n_clusters);
 
     free_all(clusters, n_clusters);
@@ -473,6 +474,7 @@ int main(int argc, char *argv[])
 /*
 *   Funkce vypise chybovou hlasku na stderr.
 *   err_num je cislo chyby
+*
 */
 void error(int err_num)
 {
@@ -511,6 +513,11 @@ int is_number(char *s)
 
     return x < 1 ? 0 : 1;
 }
+
+/*
+*   Funkce uvolni vsechny pole objektu v poli clusters
+*   a samotne pole clusteru.
+*/
 
 void free_all(struct cluster_t *clusters, int n_clusters)
 {
