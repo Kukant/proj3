@@ -534,14 +534,3 @@ void free_all(struct cluster_t *clusters, int n_clusters)
 
     free(clusters);
 }
-
-
-
-
-
-
-
-
-
-
-
