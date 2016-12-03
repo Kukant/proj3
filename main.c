@@ -106,6 +106,7 @@ void clear_cluster(struct cluster_t *c)
 {
         free(c->obj);
         c->size = 0;
+        c->capacity = 0;
 }
 
 /// Chunk of cluster objects. Value recommended for reallocation.
@@ -142,10 +143,15 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
 void append_cluster(struct cluster_t *c, struct obj_t obj)
 {
     if (c->size + 1 > c->capacity)
-        resize_cluster(c, c->size + CLUSTER_CHUNK);
+    {
+        struct cluster_t *p = resize_cluster(c, c->size + CLUSTER_CHUNK);
+
+        if(p == NULL)
+            fprintf(stderr, "Nepodarila se zmenit kapacita clusteru.\n");
+    }
 
     c->obj[c->size] = obj;
-    c->size ++;
+    c->size = c->size + 1;
 }
 
 /*
@@ -205,7 +211,7 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     float b1 = o2->x;
     float b2 = o2->y;
 
-    return sqrt( (a1-b1)*(a1-b1) + (a2-b2)*(a2-b2) );
+    return sqrtf( (a1-b1)*(a1-b1) + (a2-b2)*(a2-b2) );
 }
 
 /*
@@ -231,7 +237,7 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
         }
     }
 
-    return distance;
+    return max;
 }
 
 /*
@@ -460,6 +466,8 @@ int main(int argc, char *argv[])
        find_neighbours(clusters, n_clusters, &c1, &c2);
        merge_clusters(&clusters[c1], &clusters[c2]);
        n_clusters = remove_cluster(clusters, n_clusters, c2);
+       //print_clusters(clusters, n_clusters);
+       //printf("\n\n\n");
     }
 
     print_clusters(clusters, n_clusters);
