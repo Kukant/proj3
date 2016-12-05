@@ -4,6 +4,14 @@
  * Jednoducha shlukova analyza
  * Complete linkage
  * http://is.muni.cz/th/172767/fi_b/5739129/web/web/clsrov.html
+ * 
+ * Tomas Kukan, xkukan00
+ *
+ * 
+ * 5. 12. 2016
+ *
+ * Napovedu najdete na:
+ * https://wis.fit.vutbr.cz/FIT/st/cwk.php?title=IZP:Projekt3&csid=623120&id=11499 
  */
 #include <stdio.h>
 #include <string.h>
@@ -84,6 +92,7 @@ struct cluster_t {
 *   Funkci prototypy nekterych dalsich, vlastnich funkci.
 */
 
+void help();
 void error(int err_num);
 int is_number(char* s);
 void free_all(struct cluster_t *clusters, int n_clusters);
@@ -95,8 +104,8 @@ void init_cluster(struct cluster_t *c, int cap)
 {
     assert(c != NULL);
     assert(cap >= 0);
-    c = malloc(sizeof(struct cluster_t));
     c -> obj = malloc(cap * sizeof(struct obj_t));
+	c->capacity = cap;
 }
 
 /*
@@ -115,7 +124,7 @@ const int CLUSTER_CHUNK = 10;
 /*
  Zmena kapacity shluku 'c' na kapacitu 'new_cap'.
  */
-struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
+struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap) /*bylo cluster*/
 {
     // TUTO FUNKCI NEMENTE
     assert(c);
@@ -169,14 +178,10 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     assert(c1 != NULL);
     assert(c2 != NULL);
 
-    resize_cluster(c1, c1->size + c2->size);
+    for(int i = 0 ; i < c2->size; i++)
+        append_cluster(c1,c2->obj[i]);    
 
-    for(int i = c1->size; i < c1->size + c2->size; i++)
-        c1->obj[i] = c2->obj[i - c1->size];
-
-    c1->size += c2->size;
     sort_cluster(c1);
-
 }
 
 /**********************************************************************/
@@ -187,7 +192,7 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
  (shluku). Shluk pro odstraneni se nachazi na indexu 'idx'. Funkce vraci novy
  pocet shluku v poli.
 */
-int remove_cluster(struct cluster_t *carr, int narr, int idx) /**------------------------------------------------ TODO ----------------------------------------------------*/
+int remove_cluster(struct cluster_t *carr, int narr, int idx) 
 {
     assert(idx < narr);
     assert(narr > 0);
@@ -323,7 +328,8 @@ int load_clusters(char *filename, struct cluster_t **arr)
     if ((fr = fopen(filename, "r")) == NULL)
     {
         fprintf(stderr,"Soubor %s se nepodarilo otevrit.\n", filename);
-        return -1;
+        help();
+		return -1;
     }
 
     if (fscanf(fr, "count=%d", &count) == 0)
@@ -352,8 +358,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     for(int i = 0; i < count; i++) // cyklus pro nacitani objektu ze souboru a jejich prepisovani
     {
-        (*arr)[i].obj = malloc(sizeof(struct obj_t));
-        (*arr)[i].capacity = 1;
+	init_cluster(&(*arr)[i],1);
         (*arr)[i].size = 1;
 
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
@@ -456,6 +461,7 @@ int main(int argc, char *argv[])
     else if (n_clusters < final_cluster_num)
     {
         fprintf(stderr, "V souboru je pouze %d objektu, tudiz nemuzu udelat %d shluku. \n", n_clusters, final_cluster_num);
+		help();
         free_all(clusters, n_clusters);
         return 1;
     }
@@ -490,18 +496,22 @@ void error(int err_num)
     {
         case WRONG_ARGS :
             fprintf(stderr, "Chybne zadani argumentu.\n");
+			help();
             break;
 
         case TOO_LONG_NAME :
             fprintf(stderr, "Prilis dlouhy nazev dokumentu.\n");
+			help();
             break;
 
         case NOT_NUM :
             fprintf(stderr, "Druhy argument funkce neni kladne cislo.\n");
+			help();
             break;
 
         case FILE_ERR :
             fprintf(stderr, "Chyba v souboru.\n");
+			help();
             break;
     }
 }
@@ -530,7 +540,16 @@ int is_number(char *s)
 void free_all(struct cluster_t *clusters, int n_clusters)
 {
     for(int i = 0; i < n_clusters; i++)
-        free(clusters[i].obj);
+        clear_cluster(&clusters[i]);
 
     free(clusters);
+}
+
+/*
+*	Vypise napovedu.
+*/
+
+void help()
+{
+	fprintf(stderr, "Tomas Kukan, xkukan00 \nJednoducha shlukova analyza\nnapoveda: https://wis.fit.vutbr.cz/FIT/st/cwk.php?title=IZP:Projekt3&csid=623120&id=11499\n");
 }

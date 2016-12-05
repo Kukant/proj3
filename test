@@ -1,0 +1,9 @@
+#!/bin/bash
+
+for((j = 0; j < 1000000; j++))
+do
+for((i = 1; i < 21;i++))
+do
+./main objects $i
+done
+done
