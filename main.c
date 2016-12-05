@@ -461,7 +461,7 @@ int main(int argc, char *argv[])
     else if (n_clusters < final_cluster_num)
     {
         fprintf(stderr, "V souboru je pouze %d objektu, tudiz nemuzu udelat %d shluku. \n", n_clusters, final_cluster_num);
-		help();
+	help();
         free_all(clusters, n_clusters);
         return 1;
     }
