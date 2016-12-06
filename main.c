@@ -4,14 +4,14 @@
  * Jednoducha shlukova analyza
  * Complete linkage
  * http://is.muni.cz/th/172767/fi_b/5739129/web/web/clsrov.html
- * 
+ *
  * Tomas Kukan, xkukan00
  *
- * 
+ *
  * 5. 12. 2016
  *
  * Napovedu najdete na:
- * https://wis.fit.vutbr.cz/FIT/st/cwk.php?title=IZP:Projekt3&csid=623120&id=11499 
+ * https://wis.fit.vutbr.cz/FIT/st/cwk.php?title=IZP:Projekt3&csid=623120&id=11499
  */
 #include <stdio.h>
 #include <string.h>
@@ -53,6 +53,9 @@
 #define TOO_LONG_NAME 2
 #define NOT_NUM 3
 #define FILE_ERR 4
+#define FILE_CLOSE_ERR 5
+#define FILE_OPEN_ERR 6
+#define MEM_AL_ERR 7
 
 /*****************************************************************
  * Deklarace potrebnych datovych typu:
@@ -105,6 +108,11 @@ void init_cluster(struct cluster_t *c, int cap)
     assert(c != NULL);
     assert(cap >= 0);
     c -> obj = malloc(cap * sizeof(struct obj_t));
+    if(c->obj == NULL)
+    {
+        error(MEM_AL_ERR);
+    }
+
 	c->capacity = cap;
 }
 
@@ -142,6 +150,7 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap) /*bylo cluste
 
     c->obj = arr;
     c->capacity = new_cap;
+
     return c;
 }
 
@@ -179,7 +188,7 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     assert(c2 != NULL);
 
     for(int i = 0 ; i < c2->size; i++)
-        append_cluster(c1,c2->obj[i]);    
+        append_cluster(c1,c2->obj[i]);
 
     sort_cluster(c1);
 }
@@ -192,7 +201,7 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
  (shluku). Shluk pro odstraneni se nachazi na indexu 'idx'. Funkce vraci novy
  pocet shluku v poli.
 */
-int remove_cluster(struct cluster_t *carr, int narr, int idx) 
+int remove_cluster(struct cluster_t *carr, int narr, int idx)
 {
     assert(idx < narr);
     assert(narr > 0);
@@ -327,8 +336,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     if ((fr = fopen(filename, "r")) == NULL)
     {
-        fprintf(stderr,"Soubor %s se nepodarilo otevrit.\n", filename);
-        help();
+        error(FILE_OPEN_ERR);
 		return -1;
     }
 
@@ -354,11 +362,14 @@ int load_clusters(char *filename, struct cluster_t **arr)
     *arr = (struct cluster_t *) malloc(count * sizeof(struct cluster_t));
 
     if(*arr == NULL)
+    {
+        error(MEM_AL_ERR);
         return -1;
+    }
 
     for(int i = 0; i < count; i++) // cyklus pro nacitani objektu ze souboru a jejich prepisovani
     {
-	init_cluster(&(*arr)[i],1);
+        init_cluster(&(*arr)[i],1);
         (*arr)[i].size = 1;
 
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
@@ -394,7 +405,11 @@ int load_clusters(char *filename, struct cluster_t **arr)
             return -1;
         }
     }
-    fclose(fr);
+    if(fclose(fr) != 0)
+    {
+        error(FILE_CLOSE_ERR);
+        return -1;
+    }
 
     return loaded;
 }
@@ -461,7 +476,7 @@ int main(int argc, char *argv[])
     else if (n_clusters < final_cluster_num)
     {
         fprintf(stderr, "V souboru je pouze %d objektu, tudiz nemuzu udelat %d shluku. \n", n_clusters, final_cluster_num);
-	help();
+        help();
         free_all(clusters, n_clusters);
         return 1;
     }
@@ -472,8 +487,6 @@ int main(int argc, char *argv[])
        find_neighbours(clusters, n_clusters, &c1, &c2);
        merge_clusters(&clusters[c1], &clusters[c2]);
        n_clusters = remove_cluster(clusters, n_clusters, c2);
-       //print_clusters(clusters, n_clusters);
-       //printf("\n\n\n");
     }
 
     print_clusters(clusters, n_clusters);
@@ -511,6 +524,21 @@ void error(int err_num)
 
         case FILE_ERR :
             fprintf(stderr, "Chyba v souboru.\n");
+			help();
+            break;
+
+        case FILE_CLOSE_ERR :
+            fprintf(stderr, "Soubor se nepodaril uzavrit.\n");
+			help();
+            break;
+
+        case FILE_OPEN_ERR :
+            fprintf(stderr, "Soubor se nepodaril otevrit.\n");
+			help();
+            break;
+
+        case MEM_AL_ERR :
+            fprintf(stderr, "Nedostatek volne pameti.\n");
 			help();
             break;
     }
