@@ -333,52 +333,57 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     FILE *fr;
     int count;
+    int loaded = 0;
 
     if ((fr = fopen(filename, "r")) == NULL)
     {
         error(FILE_OPEN_ERR);
-		return -1;
+		return loaded;
     }
 
     if (fscanf(fr, "count=%d", &count) == 0)
     {
         error(FILE_ERR);
         (*arr) = NULL;
-        return -1;
+        fclose(fr);
+        return loaded;
     }
 
     if (count < 1)
     {
         error(FILE_ERR);
         (*arr) = NULL;
-        return -1;
+        fclose(fr);
+        return loaded;
     }
 
     float x,y;
     int id;
-
-    int loaded = 0;
 
     *arr = (struct cluster_t *) malloc(count * sizeof(struct cluster_t));
 
     if(*arr == NULL)
     {
         error(MEM_AL_ERR);
-        return -1;
+        fclose(fr);
+        return loaded;
     }
 
     for(int i = 0; i < count; i++) // cyklus pro nacitani objektu ze souboru a jejich prepisovani
     {
         init_cluster(&(*arr)[i],1);
         (*arr)[i].size = 1;
+        loaded++;
 
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
         {
             if(x < 0 || x > 1000 || y < 0 || y > 1000) // pokud bude neplatny format souradnic
             {
                 error(FILE_ERR);
+                free_all(*arr, loaded);
                 (*arr) = NULL;
-                return -1;
+                fclose(fr);
+                return loaded;
             }
 
             for (int j = 0; j < loaded; j++) // testuji zdali v souboru nejsou 2 objekty se stejnym id
@@ -386,12 +391,12 @@ int load_clusters(char *filename, struct cluster_t **arr)
                 if((*arr)[j].obj->id == id)
                 {
                     error(FILE_ERR);
+                    free_all(*arr, loaded);
                     (*arr) = NULL;
-                    return -1;
+                    fclose(fr);
+                    return loaded;
                 }
             }
-
-            loaded++;
 
             (*arr)[i].obj->id = id;
             (*arr)[i].obj->x = x;
@@ -401,14 +406,17 @@ int load_clusters(char *filename, struct cluster_t **arr)
         else
         {
             error(FILE_ERR);
+            fclose(fr);
+            free_all(*arr, loaded);
             (*arr) = NULL;
-            return -1;
+            return loaded;
         }
     }
     if(fclose(fr) != 0)
     {
         error(FILE_CLOSE_ERR);
-        return -1;
+        (*arr) = NULL;
+        return loaded;
     }
 
     return loaded;
@@ -467,11 +475,8 @@ int main(int argc, char *argv[])
 
     int n_clusters = load_clusters(file_name, &clusters);
 
-    if (n_clusters == -1)
-    {
-        free_all(clusters, n_clusters);
+    if (clusters == NULL)
         return 1;
-    }
 
     else if (n_clusters < final_cluster_num)
     {
