@@ -359,6 +359,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     float x,y;
     int id;
+    char c;
 
     *arr = (struct cluster_t *) malloc(count * sizeof(struct cluster_t));
 
@@ -375,9 +376,20 @@ int load_clusters(char *filename, struct cluster_t **arr)
         (*arr)[i].size = 1;
         loaded++;
 
+        c = getc(fr);
+
+        if(c != '\n' && i != count - 1)
+        {
+            error(FILE_ERR);
+            free_all(*arr, loaded);
+            (*arr) = NULL;
+            fclose(fr);
+            return loaded;
+        }
+
         if (fscanf(fr, "%d %f %f", &id, &x, &y) == 3)
         {
-            if(x < 0 || x > 1000 || y < 0 || y > 1000) // pokud bude neplatny format souradnic
+            if(x < 0 || x > 1000 || y < 0 || y > 1000 || x - (int)x != 0 || y - (int)y != 0) // pokud bude neplatny format souradnic
             {
                 error(FILE_ERR);
                 free_all(*arr, loaded);
@@ -386,7 +398,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
                 return loaded;
             }
 
-            for (int j = 0; j < loaded; j++) // testuji zdali v souboru nejsou 2 objekty se stejnym id
+            for (int j = 0; j < loaded - 1; j++) // testuji zdali v souboru nejsou 2 objekty se stejnym id
             {
                 if((*arr)[j].obj->id == id)
                 {
